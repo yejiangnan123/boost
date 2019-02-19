@@ -1,3 +1,5 @@
+http://zh.highscore.de/cpp/boost/    boost手册
+
 作用域指针	boost::scoped_ptr	
 一个作用域指针不能传递它所包含的对象的所有权到另一个作用域指针。 
 
