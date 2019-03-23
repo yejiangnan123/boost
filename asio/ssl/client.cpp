@@ -19,25 +19,17 @@ public:
       const tcp::resolver::results_type& endpoints)
     : socket_(io_context, context)
   {
-    socket_.set_verify_mode(boost::asio::ssl::verify_peer);
+    socket_.set_verify_mode(boost::asio::ssl::verify_peer);  //设置验证参数
     socket_.set_verify_callback(
-        std::bind(&client::verify_certificate, this, _1, _2));
+        std::bind(&client::verify_certificate, this, _1, _2));  //设置验证回调函数
 
-    connect(endpoints);
+    connect(endpoints);  //连接服务器
   }
 
 private:
   bool verify_certificate(bool preverified,
-      boost::asio::ssl::verify_context& ctx)
+      boost::asio::ssl::verify_context& ctx)  //验证回调函数。验证证书
   {
-    // The verify callback can be used to check whether the certificate that is
-    // being presented is valid for the peer. For example, RFC 2818 describes
-    // the steps involved in doing this for HTTPS. Consult the OpenSSL
-    // documentation for more details. Note that the callback is called once
-    // for each certificate in the certificate chain, starting from the root
-    // certificate authority.
-
-    // In this example we will simply print the certificate's subject name.
     char subject_name[256];
     X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
@@ -46,15 +38,15 @@ private:
     return preverified;
   }
 
-  void connect(const tcp::resolver::results_type& endpoints)
+  void connect(const tcp::resolver::results_type& endpoints) 
   {
     boost::asio::async_connect(socket_.lowest_layer(), endpoints,
         [this](const boost::system::error_code& error,
-          const tcp::endpoint& /*endpoint*/)
+          const tcp::endpoint& /*endpoint*/)  //异步连接
         {
           if (!error)
           {
-            handshake();
+            handshake();  //握手
           }
           else
           {
@@ -66,11 +58,11 @@ private:
   void handshake()
   {
     socket_.async_handshake(boost::asio::ssl::stream_base::client,
-        [this](const boost::system::error_code& error)
+        [this](const boost::system::error_code& error)  //异步发送握手
         {
           if (!error)
           {
-            send_request();
+            send_request(); //握手完成，发送请求
           }
           else
           {
@@ -87,11 +79,11 @@ private:
 
     boost::asio::async_write(socket_,
         boost::asio::buffer(request_, request_length),
-        [this](const boost::system::error_code& error, std::size_t length)
+        [this](const boost::system::error_code& error, std::size_t length) //异步发送数据
         {
           if (!error)
           {
-            receive_response(length);
+            receive_response(length);  //接收返回结果
           }
           else
           {
@@ -104,7 +96,7 @@ private:
   {
     boost::asio::async_read(socket_,
         boost::asio::buffer(reply_, length),
-        [this](const boost::system::error_code& error, std::size_t length)
+        [this](const boost::system::error_code& error, std::size_t length)  //异步接收返回结果
         {
           if (!error)
           {
@@ -139,8 +131,8 @@ int main(int argc, char* argv[])
     tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve(argv[1], argv[2]);
 
-    boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
-    ctx.load_verify_file("ca.pem");
+    boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);//设置加密类型
+    ctx.load_verify_file("ca.pem");  //加载公钥文件
 
     client c(io_context, ctx, endpoints);
 
