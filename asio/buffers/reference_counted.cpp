@@ -1,4 +1,3 @@
-//tcp监听客户端连接，连接成功后给客户端发送系统当前时间
 //定义一个只读缓存，tcp发送这个缓存数据给客户端
 #include <boost/asio.hpp>
 #include <iostream>
