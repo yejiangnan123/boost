@@ -1,3 +1,4 @@
+//包头+包体，tcp数据需要拆包
 #ifndef CHAT_MESSAGE_HPP
 #define CHAT_MESSAGE_HPP
 
