@@ -127,3 +127,84 @@ BOOST_CLASS_VERSION(bus_route, 1)
 二进制 boost::archive::binary_oarchive
 文本 boost::archive::text_oarchive
 自定义
+
+
+
+---------------------------------------------------------------------------------------------
+以下为容器实例测试
+---------------------------------------------------------------------------------------------
+root@ubuntu:~/boost-test/serialization# cat main.cpp 
+
+#include <cstddef> // NULL
+#include <iomanip>
+#include <iostream>
+#include <fstream>
+#include <string>
+
+#include <boost/archive/tmpdir.hpp>
+
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/assume_abstract.hpp>
+using namespace std;
+class bus_route
+{
+public:
+    friend class boost::serialization::access;
+    std::list<std::string> stops;
+    std::string name;
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version)
+    {
+        ar & name;
+        ar & stops;
+    }
+public:
+    bus_route(){}
+    void print()
+    {
+        cout << name;
+        for(auto it = stops.begin(); it != stops.end(); it++){
+            std::cout << " " << *it;
+        }
+        cout << "\n";
+    }
+};
+
+int main(int argc, char *argv[])
+{
+    bus_route bus1,bus2;
+    bus1.name = "bus1";
+    bus1.stops.push_back("a");
+    bus1.stops.push_back("b");
+    bus1.stops.push_back("c");
+    std::ostringstream os;
+    boost::archive::text_oarchive oa(os);
+    oa << bus1;
+    std::string content = os.str();
+    std::istringstream is(content);
+    boost::archive::text_iarchive ia(is);
+    ia >> bus2;
+    bus1.print();
+    bus2.print();
+    return 0;
+}
+-----------------------------------------
+cmake 配置需要添加 serialization 库
+root@ubuntu:~/boost-test/serialization# cat CMakeLists.txt 
+cmake_minimum_required(VERSION 2.8.3)
+project(test)
+find_package(Boost REQUIRED COMPONENTS system serialization thread)
+include_directories(${Boost_INCLUDE_DIRS})
+AUX_SOURCE_DIRECTORY(. SRC_DIR)
+add_executable(test ${SRC_DIR} )
+target_link_libraries(test ${Boost_LIBRARIES} pthread)
+----------------------------------------
+root@ubuntu:~/boost-test/serialization# ./test 
+bus1 a b c
+bus1 a b c
+-----------------------------------------
