@@ -1,4 +1,4 @@
-# streadmbuf
+# streambuf
 * 头文件
 boost/asio/streambuf.hpp
 * 写数据
