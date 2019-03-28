@@ -29,13 +29,14 @@ boost::asio::const_buffer b1 = ...;
 std::size_t s1 = b1.size();
 const unsigned char* p1 = static_cast<const unsigned char*>(b1.data());
 ```
----------------------------------------
-//可读写buffer
+* 可读写buffer
+```
 boost::asio::mutable_buffer b1 = ...;
 std::size_t s1 = b1.size();
 unsigned char* p1 = static_cast<unsigned char*>(b1.data());
----------------------------------------
-//buffer函数
+```
+* buffer函数
+```
 char d1[128];
 std::vector<char> d2(128);
 boost::array<char, 128> d3;
@@ -51,9 +52,10 @@ bufs2.push_back(boost::asio::buffer(d1));
 bufs2.push_back(boost::asio::buffer(d2));
 bufs2.push_back(boost::asio::buffer(d3));
 bytes_transferred = sock.send(bufs2);
----------------------------------------
-//复制
+```
+* 复制
+```
 vector<const_buffer> buffers = ...;
 vector<unsigned char> data(boost::asio::buffer_size(buffers));
 boost::asio::buffer_copy(boost::asio::buffer(data), buffers);、
----------------------------------------
+```
