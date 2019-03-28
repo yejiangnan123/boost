@@ -30,6 +30,9 @@
 超时处理：60s内必须处理完毕，否则直接关闭连接
 ```
 * http_server_stackless.cpp
+```
+监听和处理请求都用了协程
+```
 * http_server_sync.cpp
 ## http_client
 * http_client_async.cpp
