@@ -20,6 +20,9 @@
 增加请求超时处理，一个请求60s没有处理，则关闭连接
 ```
 * http_server_flex.cpp
+```
+增加ssl功能，也就是连接的时候增加握手环节，握手的功能是验证证书的正确性
+```
 * http_server_small.cpp
 * http_server_stackless.cpp
 * http_server_sync.cpp
