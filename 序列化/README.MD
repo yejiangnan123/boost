@@ -1,8 +1,8 @@
-boost 序列化
-https://blog.csdn.net/chenaqiao/article/details/48371597
-https://www.boost.org/doc/libs/1_51_0/libs/serialization/doc/tutorial.html
---------------------------------------------------------------------------
-侵入式
+# boost 序列化
+* [csdn原文](https://blog.csdn.net/chenaqiao/article/details/48371597)
+* [boost](https://www.boost.org/doc/libs/1_51_0/libs/serialization/doc/tutorial.html)
+## 侵入式
+```
 在要序列化的类中增加一个友元类，然后在内部序列化数据成员即可
 friend class boost::serialization::access;  
   
@@ -12,8 +12,9 @@ friend class boost::serialization::access;
         ar & _tag;  
         ar & _text;  
     }  
-------------------------------------------
-非侵入式
+```
+## 非侵入式
+```
 在类的外部进行序列化，不修改原来的类就可以序列化，但是要序列化的数据成员必须是public，在外部序列化需要访问类的数据成员
 namespace boost {  
     namespace serialization {  
@@ -26,9 +27,10 @@ namespace boost {
         }  
   
     } // namespace serialization  
-} // namespace boost  
-------------------------------------------
-序列化和反序列化的使用
+} // namespace boost
+```
+## 序列化和反序列化的使用
+```
 void TestArchive1()  
 {  
     CMyData d1(2012, "China, good luck");  
@@ -45,8 +47,9 @@ void TestArchive1()
   
     std::cout << "CMyData tag: " << d2.GetTag() << ", text: " << d2.GetText() << "\n";  
 }  
-------------------------------------------
-可以序列化继承类
+```
+## 可以序列化继承类
+```
 先序列化基类，再序列化子类的数据成员
 namespace boost {  
     namespace serialization {  
@@ -61,16 +64,9 @@ namespace boost {
   
     } // namespace serialization  
 } // namespace boost  
-------------------------------------------
-序列化指针，数组
-普通的指针和数组和一般变量一样，可以直接序列化
-------------------------------------------
-序列化基类，子类
-------------------------------------------
-序列化stl容器
-基本容器已经支持序列化，可以直接序列化
-------------------------------------------
-序列化多态，多态类指针序列化需要特殊处理
+```
+## 序列化多态，多态类指针序列化需要特殊处理
+```
 BOOST_CLASS_EXPORT_GUID(CMyData_Child, "CMyData_Child")  
   
 class CMyData_Container  
@@ -89,8 +85,9 @@ private:
 public:  
     CMyData* pointers[3];  
 };  
-------------------------------------------
-序列化和反序列化可以分开
+```
+## 序列化和反序列化可以分开
+```
 save和load分开
 #include <boost/serialization/list.hpp>  
 #include <boost/serialization/string.hpp>  
@@ -122,17 +119,9 @@ public:
 };  
   
 BOOST_CLASS_VERSION(bus_route, 1)  
-------------------------------------------
-序列化支持多种格式
-二进制 boost::archive::binary_oarchive
-文本 boost::archive::text_oarchive
-自定义
-
-
-
----------------------------------------------------------------------------------------------
-以下为容器实例测试
----------------------------------------------------------------------------------------------
+```
+## 以下为容器实例测试
+```
 root@ubuntu:~/boost-test/serialization# cat main.cpp 
 
 #include <cstddef> // NULL
@@ -193,8 +182,9 @@ int main(int argc, char *argv[])
     bus2.print();
     return 0;
 }
------------------------------------------
-cmake 配置需要添加 serialization 库
+```
+## cmake 配置需要添加 serialization 库
+```
 root@ubuntu:~/boost-test/serialization# cat CMakeLists.txt 
 cmake_minimum_required(VERSION 2.8.3)
 project(test)
@@ -203,8 +193,10 @@ include_directories(${Boost_INCLUDE_DIRS})
 AUX_SOURCE_DIRECTORY(. SRC_DIR)
 add_executable(test ${SRC_DIR} )
 target_link_libraries(test ${Boost_LIBRARIES} pthread)
-----------------------------------------
+```
+#测试结果
+```
 root@ubuntu:~/boost-test/serialization# ./test 
 bus1 a b c
 bus1 a b c
------------------------------------------
+```
