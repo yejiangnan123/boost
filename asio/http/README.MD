@@ -15,6 +15,10 @@
 协程特点是使异步编程更简单，可读性好，同时拥有异步的高效率和同步的高可读性
 ```
 * http_server_fast.cpp
+```
+快速服务器，每种请求进行分类，不会做多余的处理，所以处理速度比较快
+增加请求超时处理，一个请求60s没有处理，则关闭连接
+```
 * http_server_flex.cpp
 * http_server_small.cpp
 * http_server_stackless.cpp
