@@ -1,12 +1,3 @@
-//
-// Copyright (c) 2016-2017 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/boostorg/beast
-//
-
 //------------------------------------------------------------------------------
 //
 // Example: Advanced server
@@ -37,7 +28,7 @@ using tcp = boost::asio::ip::tcp;               // from <boost/asio/ip/tcp.hpp>
 namespace http = boost::beast::http;            // from <boost/beast/http.hpp>
 namespace websocket = boost::beast::websocket;  // from <boost/beast/websocket.hpp>
 
-// Return a reasonable mime type based on the extension of a file.
+// 返回文件类型
 boost::beast::string_view
 mime_type(boost::beast::string_view path)
 {
@@ -73,8 +64,7 @@ mime_type(boost::beast::string_view path)
     return "application/text";
 }
 
-// Append an HTTP rel-path to a local filesystem path.
-// The returned path is normalized for the platform.
+// 把请求的文件路径转为本地路径
 std::string
 path_cat(
     boost::beast::string_view base,
@@ -100,10 +90,7 @@ path_cat(
     return result;
 }
 
-// This function produces an HTTP response for the given
-// request. The type of the response object depends on the
-// contents of the request, so the interface requires the
-// caller to pass a generic lambda for receiving the response.
+// 处理http请求，并发送响应信息
 template<
     class Body, class Allocator,
     class Send>
@@ -113,7 +100,7 @@ handle_request(
     http::request<Body, http::basic_fields<Allocator>>&& req,
     Send&& send)
 {
-    // Returns a bad request response
+    // 请求错误
     auto const bad_request =
     [&req](boost::beast::string_view why)
     {
@@ -126,7 +113,7 @@ handle_request(
         return res;
     };
 
-    // Returns a not found response
+    // 文件不存在
     auto const not_found =
     [&req](boost::beast::string_view target)
     {
@@ -139,7 +126,7 @@ handle_request(
         return res;
     };
 
-    // Returns a server error response
+    // 服务器出错
     auto const server_error =
     [&req](boost::beast::string_view what)
     {
@@ -152,39 +139,39 @@ handle_request(
         return res;
     };
 
-    // Make sure we can handle the method
+    // 确定是head get请求
     if( req.method() != http::verb::get &&
         req.method() != http::verb::head)
         return send(bad_request("Unknown HTTP-method"));
 
-    // Request path must be absolute and not contain "..".
+    // 确定请求文件路径为有效路径
     if( req.target().empty() ||
         req.target()[0] != '/' ||
         req.target().find("..") != boost::beast::string_view::npos)
         return send(bad_request("Illegal request-target"));
 
-    // Build the path to the requested file
+    // 路径拼接
     std::string path = path_cat(doc_root, req.target());
     if(req.target().back() == '/')
         path.append("index.html");
 
-    // Attempt to open the file
+    // 打开文件
     boost::beast::error_code ec;
     http::file_body::value_type body;
     body.open(path.c_str(), boost::beast::file_mode::scan, ec);
 
-    // Handle the case where the file doesn't exist
+    // 判断文件是否存在
     if(ec == boost::system::errc::no_such_file_or_directory)
         return send(not_found(req.target()));
 
-    // Handle an unknown error
+    // 错误处理
     if(ec)
         return send(server_error(ec.message()));
 
-    // Cache the size since we need it after the move
+    // 文件大小
     auto const size = body.size();
 
-    // Respond to HEAD request
+    // 响应head请求
     if(req.method() == http::verb::head)
     {
         http::response<http::empty_body> res{http::status::ok, req.version()};
@@ -195,7 +182,7 @@ handle_request(
         return send(std::move(res));
     }
 
-    // Respond to GET request
+    // 响应GET请求
     http::response<http::file_body> res{
         std::piecewise_construct,
         std::make_tuple(std::move(body)),
@@ -209,7 +196,7 @@ handle_request(
 
 //------------------------------------------------------------------------------
 
-// Report a failure
+// 报告错误
 void
 fail(boost::system::error_code ec, char const* what)
 {
@@ -227,7 +214,6 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     char ping_state_ = 0;
 
 public:
-    // 获得套接字的所有权
     explicit
     websocket_session(tcp::socket socket)
         : ws_(std::move(socket))
@@ -237,13 +223,10 @@ public:
     {
     }
 
-    // 启动异步操作
     template<class Body, class Allocator>
     void
     do_accept(http::request<Body, http::basic_fields<Allocator>> req)
     {
-        // 设置控件回调。 这将被称为
-        // 在每个传入的ping，pong和close帧上。
         ws_.control_callback(
             std::bind(
                 &websocket_session::on_control_callback,
@@ -251,14 +234,10 @@ public:
                 std::placeholders::_1,
                 std::placeholders::_2));
 
-        // 运行计时器。 计时器运行
-        // 这样可以简化代码。
         on_timer({});
 
-        // 设置计时器
         timer_.expires_after(std::chrono::seconds(15));
 
-        // 接受websocket握手
         ws_.async_accept(
             req,
             boost::asio::bind_executor(
@@ -272,38 +251,24 @@ public:
     void
     on_accept(boost::system::error_code ec)
     {
-        // 当计时器关闭套接字时发生
         if(ec == boost::asio::error::operation_aborted)
             return;
-
         if(ec)
             return fail(ec, "accept");
-
-        // Read a message
         do_read();
     }
 
-    // Called when the timer expires.
     void
     on_timer(boost::system::error_code ec)
     {
         if(ec && ec != boost::asio::error::operation_aborted)
             return fail(ec, "timer");
-
-        // See if the timer really expired since the deadline may have moved.
         if(timer_.expiry() <= std::chrono::steady_clock::now())
         {
-            // If this is the first time the timer expired,
-            // send a ping to see if the other end is there.
             if(ws_.is_open() && ping_state_ == 0)
             {
-                // Note that we are sending a ping
                 ping_state_ = 1;
-
-                // Set the timer
                 timer_.expires_after(std::chrono::seconds(15));
-
-                // Now send the ping
                 ws_.async_ping({},
                     boost::asio::bind_executor(
                         strand_,
@@ -314,19 +279,11 @@ public:
             }
             else
             {
-                // The timer expired while trying to handshake,
-                // or we sent a ping and it never completed or
-                // we never got back a control frame, so close.
-
-                // Closing the socket cancels all outstanding operations. They
-                // will complete with boost::asio::error::operation_aborted
                 ws_.next_layer().shutdown(tcp::socket::shutdown_both, ec);
                 ws_.next_layer().close(ec);
                 return;
             }
         }
-
-        // Wait on the timer
         timer_.async_wait(
             boost::asio::bind_executor(
                 strand_,
@@ -335,58 +292,40 @@ public:
                     shared_from_this(),
                     std::placeholders::_1)));
     }
-
-    // Called to indicate activity from the remote peer
     void
     activity()
     {
-        // Note that the connection is alive
         ping_state_ = 0;
-
-        // Set the timer
         timer_.expires_after(std::chrono::seconds(15));
     }
-
-    // Called after a ping is sent.
     void
     on_ping(boost::system::error_code ec)
     {
-        // Happens when the timer closes the socket
         if(ec == boost::asio::error::operation_aborted)
             return;
-
         if(ec)
             return fail(ec, "ping");
-
-        // Note that the ping was sent.
         if(ping_state_ == 1)
         {
             ping_state_ = 2;
         }
         else
         {
-            // ping_state_ could have been set to 0
-            // if an incoming control frame was received
-            // at exactly the same time we sent a ping.
             BOOST_ASSERT(ping_state_ == 0);
         }
     }
-
     void
     on_control_callback(
         websocket::frame_type kind,
         boost::beast::string_view payload)
     {
         boost::ignore_unused(kind, payload);
-
-        // 请注意，有活动
         activity();
     }
 
     void
     do_read()
     {
-        // Read a message into our buffer
         ws_.async_read(
             buffer_,
             boost::asio::bind_executor(
@@ -397,29 +336,19 @@ public:
                     std::placeholders::_1,
                     std::placeholders::_2)));
     }
-
     void
     on_read(
         boost::system::error_code ec,
         std::size_t bytes_transferred)
     {
         boost::ignore_unused(bytes_transferred);
-
-        // Happens when the timer closes the socket
         if(ec == boost::asio::error::operation_aborted)
             return;
-
-        // This indicates that the websocket_session was closed
         if(ec == websocket::error::closed)
             return;
-
         if(ec)
             fail(ec, "read");
-
-        // Note that there is activity
         activity();
-
-        // Echo the message
         ws_.text(ws_.got_text());
         ws_.async_write(
             buffer_.data(),
@@ -431,51 +360,37 @@ public:
                     std::placeholders::_1,
                     std::placeholders::_2)));
     }
-
     void
     on_write(
         boost::system::error_code ec,
         std::size_t bytes_transferred)
     {
         boost::ignore_unused(bytes_transferred);
-
-        // Happens when the timer closes the socket
         if(ec == boost::asio::error::operation_aborted)
             return;
-
         if(ec)
             return fail(ec, "write");
-
-        // Clear the buffer
         buffer_.consume(buffer_.size());
-
-        // Do another read
         do_read();
     }
 };
 
-// Handles an HTTP server connection
+//处理http连接 
 class http_session : public std::enable_shared_from_this<http_session>
 {
-    // This queue is used for HTTP pipelining.
     class queue
     {
         enum
         {
-            // Maximum number of responses we will queue
             limit = 8
         };
-
-        // The type-erased, saved work item
         struct work
         {
             virtual ~work() = default;
             virtual void operator()() = 0;
         };
-
         http_session& self_;
         std::vector<std::unique_ptr<work>> items_;
-
     public:
         explicit
         queue(http_session& self)
@@ -484,16 +399,11 @@ class http_session : public std::enable_shared_from_this<http_session>
             static_assert(limit > 0, "queue limit must be positive");
             items_.reserve(limit);
         }
-
-        // Returns `true` if we have reached the queue limit
         bool
         is_full() const
         {
             return items_.size() >= limit;
         }
-
-        // Called when a message finishes sending
-        // Returns `true` if the caller should initiate a read
         bool
         on_write()
         {
@@ -504,18 +414,14 @@ class http_session : public std::enable_shared_from_this<http_session>
                 (*items_.front())();
             return was_full;
         }
-
-        // Called by the HTTP handler to send a response.
         template<bool isRequest, class Body, class Fields>
         void
         operator()(http::message<isRequest, Body, Fields>&& msg)
         {
-            // This holds a work item
             struct work_impl : work
             {
                 http_session& self_;
                 http::message<isRequest, Body, Fields> msg_;
-
                 work_impl(
                     http_session& self,
                     http::message<isRequest, Body, Fields>&& msg)
@@ -523,7 +429,6 @@ class http_session : public std::enable_shared_from_this<http_session>
                     , msg_(std::move(msg))
                 {
                 }
-
                 void
                 operator()()
                 {
@@ -539,12 +444,8 @@ class http_session : public std::enable_shared_from_this<http_session>
                                 msg_.need_eof())));
                 }
             };
-
-            // Allocate and store the work
             items_.push_back(
                 boost::make_unique<work_impl>(self_, std::move(msg)));
-
-            // If there was no previous work, start this one
             if(items_.size() == 1)
                 (*items_.front())();
         }
@@ -560,7 +461,6 @@ class http_session : public std::enable_shared_from_this<http_session>
     queue queue_;
 
 public:
-    // Take ownership of the socket
     explicit
     http_session(
         tcp::socket socket,
@@ -574,11 +474,9 @@ public:
     {
     }
 
-    // Start the asynchronous operation
     void
     run()
     {
-        // Make sure we run on the strand
         if(! strand_.running_in_this_thread())
             return boost::asio::post(
                 boost::asio::bind_executor(
@@ -587,24 +485,14 @@ public:
                         &http_session::run,
                         shared_from_this())));
 
-        // Run the timer. The timer is operated
-        // continuously, this simplifies the code.
         on_timer({});
-
         do_read();
     }
-
     void
     do_read()
     {
-        // Set the timer
         timer_.expires_after(std::chrono::seconds(15));
-
-        // Make the request empty before reading,
-        // otherwise the operation behavior is undefined.
         req_ = {};
-
-        // Read a request
         http::async_read(socket_, buffer_, req_,
             boost::asio::bind_executor(
                 strand_,
@@ -613,29 +501,19 @@ public:
                     shared_from_this(),
                     std::placeholders::_1)));
     }
-
-    // Called when the timer expires.
     void
     on_timer(boost::system::error_code ec)
     {
         if(ec && ec != boost::asio::error::operation_aborted)
             return fail(ec, "timer");
-
-        // Check if this has been upgraded to Websocket
         if(timer_.expires_at() == (std::chrono::steady_clock::time_point::min)())
             return;
-
-        // Verify that the timer really expired since the deadline may have moved.
         if(timer_.expiry() <= std::chrono::steady_clock::now())
         {
-            // Closing the socket cancels all outstanding operations. They
-            // will complete with boost::asio::error::operation_aborted
             socket_.shutdown(tcp::socket::shutdown_both, ec);
             socket_.close(ec);
             return;
         }
-
-        // Wait on the timer
         timer_.async_wait(
             boost::asio::bind_executor(
                 strand_,
@@ -644,87 +522,58 @@ public:
                     shared_from_this(),
                     std::placeholders::_1)));
     }
-
     void
     on_read(boost::system::error_code ec)
     {
-        // Happens when the timer closes the socket
         if(ec == boost::asio::error::operation_aborted)
             return;
-
-        // This means they closed the connection
         if(ec == http::error::end_of_stream)
             return do_close();
-
         if(ec)
             return fail(ec, "read");
-
-        // See if it is a WebSocket Upgrade
         if(websocket::is_upgrade(req_))
         {
-            // Make timer expire immediately, by setting expiry to time_point::min we can detect
-            // the upgrade to websocket in the timer handler
             timer_.expires_at((std::chrono::steady_clock::time_point::min)());
-
-            // Create a WebSocket websocket_session by transferring the socket
             std::make_shared<websocket_session>(
                 std::move(socket_))->do_accept(std::move(req_));
             return;
         }
-
-        // Send the response
         handle_request(*doc_root_, std::move(req_), queue_);
-
-        // If we aren't at the queue limit, try to pipeline another request
         if(! queue_.is_full())
             do_read();
     }
-
     void
     on_write(boost::system::error_code ec, bool close)
     {
-        // Happens when the timer closes the socket
         if(ec == boost::asio::error::operation_aborted)
             return;
-
         if(ec)
             return fail(ec, "write");
-
         if(close)
         {
-            // This means we should close the connection, usually because
-            // the response indicated the "Connection: close" semantic.
             return do_close();
         }
-
-        // Inform the queue that a write completed
         if(queue_.on_write())
         {
-            // Read another request
             do_read();
         }
     }
-
     void
     do_close()
     {
-        // Send a TCP shutdown
         boost::system::error_code ec;
         socket_.shutdown(tcp::socket::shutdown_send, ec);
-
-        // At this point the connection is closed gracefully
     }
 };
 
 //------------------------------------------------------------------------------
 
-// Accepts incoming connections and launches the sessions
+// 监听者
 class listener : public std::enable_shared_from_this<listener>
 {
     tcp::acceptor acceptor_;
     tcp::socket socket_;
     std::shared_ptr<std::string const> doc_root_;
-
 public:
     listener(
         boost::asio::io_context& ioc,
@@ -735,32 +584,24 @@ public:
         , doc_root_(doc_root)
     {
         boost::system::error_code ec;
-
-        // Open the acceptor
         acceptor_.open(endpoint.protocol(), ec);
         if(ec)
         {
             fail(ec, "open");
             return;
         }
-
-        // Allow address reuse
         acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);
         if(ec)
         {
             fail(ec, "set_option");
             return;
         }
-
-        // Bind to the server address
         acceptor_.bind(endpoint, ec);
         if(ec)
         {
             fail(ec, "bind");
             return;
         }
-
-        // Start listening for connections
         acceptor_.listen(
             boost::asio::socket_base::max_listen_connections, ec);
         if(ec)
@@ -769,8 +610,6 @@ public:
             return;
         }
     }
-
-    // Start accepting incoming connections
     void
     run()
     {
@@ -778,7 +617,6 @@ public:
             return;
         do_accept();
     }
-
     void
     do_accept()
     {
@@ -789,7 +627,6 @@ public:
                 shared_from_this(),
                 std::placeholders::_1));
     }
-
     void
     on_accept(boost::system::error_code ec)
     {
@@ -799,22 +636,19 @@ public:
         }
         else
         {
-            // Create the http_session and run it
             std::make_shared<http_session>(
                 std::move(socket_),
                 doc_root_)->run();
         }
-
-        // Accept another connection
         do_accept();
     }
 };
 
 //------------------------------------------------------------------------------
-
+// 多个线程运行同一ioc，异步调用ioc事件
+// 注册一个信号处理任务，停止ioc运行
 int main(int argc, char* argv[])
 {
-    // Check command line arguments.
     if (argc != 5)
     {
         std::cerr <<
@@ -828,27 +662,23 @@ int main(int argc, char* argv[])
     auto const doc_root = std::make_shared<std::string>(argv[3]);
     auto const threads = std::max<int>(1, std::atoi(argv[4]));
 
-    // The io_context is required for all I/O
     boost::asio::io_context ioc{threads};
 
-    // Create and launch a listening port
+    // 创建并运行一个监听
     std::make_shared<listener>(
         ioc,
         tcp::endpoint{address, port},
         doc_root)->run();
 
-    // Capture SIGINT and SIGTERM to perform a clean shutdown
+    // 注册信号处理函数，停止ioc
     boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
     signals.async_wait(
         [&](boost::system::error_code const&, int)
         {
-            // Stop the `io_context`. This will cause `run()`
-            // to return immediately, eventually destroying the
-            // `io_context` and all of the sockets in it.
             ioc.stop();
         });
 
-    // Run the I/O service on the requested number of threads
+    // 启动运行多个ioc线程
     std::vector<std::thread> v;
     v.reserve(threads - 1);
     for(auto i = threads - 1; i > 0; --i)
@@ -859,9 +689,7 @@ int main(int argc, char* argv[])
         });
     ioc.run();
 
-    // (If we get here, it means we got a SIGINT or SIGTERM)
-
-    // Block until all the threads exit
+    // 阻塞等待所有线程结束
     for(auto& t : v)
         t.join();
 
