@@ -133,6 +133,7 @@ int main(int argc, char* argv[])
     cout << "produced " << producer_count << " objects." << endl;
     cout << "consumed " << consumer_count << " objects." << endl;
 }
+```
 ## boost::lockfree::spsc_queue  单入单出队列
 ```
 #include <boost/thread/thread.hpp>
