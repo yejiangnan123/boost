@@ -24,6 +24,11 @@
 增加ssl功能，也就是连接的时候增加握手环节，握手的功能是验证证书的正确性
 ```
 * http_server_small.cpp
+```
+小，是这个服务器的特点，只有一个线程，代码小，结构简单
+流程：监听,读，写,关闭
+超时处理：60s内必须处理完毕，否则直接关闭连接
+```
 * http_server_stackless.cpp
 * http_server_sync.cpp
 ## http_client
