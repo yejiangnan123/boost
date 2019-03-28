@@ -22,14 +22,13 @@ is >> s;//读数据
 # buffer
 * 头文件
 boost/asio/buffer.hpp
-* 只读
+* 只读const_buffer
 ```
-//只读buffer
 boost::asio::const_buffer b1 = ...;
 std::size_t s1 = b1.size();
 const unsigned char* p1 = static_cast<const unsigned char*>(b1.data());
 ```
-* 可读写buffer
+* 可读写mutable_buffer
 ```
 boost::asio::mutable_buffer b1 = ...;
 std::size_t s1 = b1.size();
@@ -44,7 +43,8 @@ boost::array<char, 128> d3;
 boost::array<mutable_buffer, 3> bufs1 = {
   boost::asio::buffer(d1),
   boost::asio::buffer(d2),
-  boost::asio::buffer(d3) };
+  boost::asio::buffer(d3) 
+};
 bytes_transferred = sock.receive(bufs1);
 
 std::vector<const_buffer> bufs2;
@@ -53,7 +53,7 @@ bufs2.push_back(boost::asio::buffer(d2));
 bufs2.push_back(boost::asio::buffer(d3));
 bytes_transferred = sock.send(bufs2);
 ```
-* 复制
+* 复制buffer_copy
 ```
 vector<const_buffer> buffers = ...;
 vector<unsigned char> data(boost::asio::buffer_size(buffers));
