@@ -1,4 +1,5 @@
 # 目录
+[共享内存分配器管理，复杂容器设计](https://www.boost.org/doc/libs/1_69_0/doc/html/interprocess/allocators_containers.html)
 ```
 分配释放内存段
 对象名称类型长度
@@ -9,6 +10,7 @@
 写时复制模式，写的时候相当于创建一个副本
 静态缓冲区
 堆缓冲区
+共享内存分配器管理，复杂容器设计 https://www.boost.org/doc/libs/1_69_0/doc/html/interprocess/allocators_containers.html
 ```
 ## 分配释放内存段
 ```cpp
