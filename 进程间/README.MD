@@ -4,8 +4,19 @@
 ```
 需要连接-lrt库，cmake配置添加 rt库
 ```
-## 对象是一个简单的buf
+## 目录
 ```
+对象是一个简单的buf
+对象可以有名称
+指针，对象可以是自定义链表
+对象是vector容器
+对象是map容器
+映射到本地空间
+匿名共享内存（父子进程使用）
+文件映射到内存
+```
+## 对象是一个简单的buf
+```cpp
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <cstdlib> //std::system
 #include <sstream>
@@ -72,7 +83,7 @@ int main (int argc, char *argv[])
 }
 ```
 ## 对象可以有名称
-```
+```cpp
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <cstdlib> //std::system
 #include <cstddef>
@@ -162,7 +173,7 @@ int main(int argc, char *argv[])
 }
 ```
 ## 指针，对象可以是自定义链表
-```
+```cpp
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/offset_ptr.hpp>
 
@@ -216,7 +227,7 @@ int main ()
 }
 ```
 ## 对象是vector容器
-```
+```cpp
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
@@ -283,7 +294,7 @@ int main(int argc, char *argv[])
 }
 ```
 ## 对象是map容器
-```
+```cpp
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/containers/map.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
@@ -346,7 +357,7 @@ int main ()
 }
 ```
 ## 映射到本地空间
-```
+```cpp
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <cstring>
